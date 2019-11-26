@@ -5,6 +5,7 @@ ppport.h
 R3.xs
 README
 t/Router-R3.t
+t/destroy.t
 fallback/const-c.inc
 fallback/const-xs.inc
 lib/Router/R3.pm

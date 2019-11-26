@@ -2828,10 +2828,10 @@ new(...)
                 }
             }
 
-            SV* ret = newSV(0);
-            SvUPGRADE(ret, SVt_RV);
-            SvROK_on(ret);
-            SvRV(ret) = (SV*)r3_pad;
+            // keep the pad pointer as a plain IV: an SV pretending to be a
+            // reference to non-SV memory makes perl walk into the pad during
+            // global destruction (sv_clean_objs) and corrupt or free it
+            SV* ret = newSViv(PTR2IV(r3_pad));
 
             SV * obj = newRV_noinc(ret);
             STRLEN classname_len;
@@ -2845,7 +2845,7 @@ new(...)
 void
 match(SV* r3_sv, SV *str_sv)
     PPCODE:
-        void* r3_pad = SvRV(SvRV(r3_sv));
+        void* r3_pad = INT2PTR(void*, SvIV(SvRV(r3_sv)));
         node* r3 = *(node**)r3_pad;
 
         char *str;
@@ -2894,14 +2894,15 @@ match(SV* r3_sv, SV *str_sv)
 
 void DESTROY(SV* r3_sv)
     PPCODE:
-        void* pad = SvRV(SvRV(r3_sv));
+        void* pad = INT2PTR(void*, SvIV(SvRV(r3_sv)));
+        if (!pad) XSRETURN_EMPTY;
         int branch_n = *(int*)((char*)pad + sizeof(node*));
         SV** target = (SV**)((char*)pad + sizeof(node*) + sizeof(int));
         for(int i=0; i<branch_n; ++i)
             SvREFCNT_dec(target[i]);
         r3_tree_free(*(node**)pad);
         Safefree(pad);
-        SvRV(SvRV(r3_sv)) = 0;
+        sv_setiv(SvRV(r3_sv), 0);
 
 #ifdef PERL_R3_DEBUG
 
