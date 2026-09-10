@@ -2271,6 +2271,9 @@ void str_array_free(str_array *l) {
             zfree(l->tokens[i]);
         }
     }
+    // the token array itself is allocated in str_array_create() and grown by
+    // str_array_resize(); without this it leaks on every match()
+    zfree(l->tokens);
     zfree(l);
 }
 
